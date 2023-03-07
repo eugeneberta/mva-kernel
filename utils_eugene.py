@@ -28,9 +28,9 @@ def weisfeiler_lehman(G, h):
     for n in range(N):
         pattern = str(G.nodes[n]['labels'][0])
         if pattern in patterns:
-            patterns[pattern] += 1
+            patterns[pattern] += 1/N
         else:
-            patterns[pattern] = 1
+            patterns[pattern] = 1/N
         node_features[0, n] = pattern
     
     num_patterns = len(patterns)
@@ -44,9 +44,9 @@ def weisfeiler_lehman(G, h):
             pattern = str(node_features[i-1, n]) + '>' + ''.join([str(f) for f in sorted_features])
 
             if pattern in step_patterns:
-                step_patterns[pattern] += 1
+                step_patterns[pattern] += (1+h)/N
             else:
-                step_patterns[pattern] = 1
+                step_patterns[pattern] = (1+h)/N
             
             node_features[i, n] = pattern
         
