@@ -1,4 +1,6 @@
 import numpy as np
+import networkx as nx
+import copy
 
 def get_all_atom_types(G) :
     atom_types = {}
@@ -56,3 +58,35 @@ def weisfeiler_lehman(G, h):
             patterns.update(step_patterns)
 
     return patterns
+
+def clean_dataset(dataset) :
+    """
+    Given a dataset of networkx graphs, clean it by iterating over molecules having
+    more than one connected component and by either :
+
+    1. discard the molecule if this is actually two
+    fuly connected graphs
+    2. remove only single nodes from the graph if there happens to be
+    isolated atoms.
+    
+    Returns the new dataset.
+
+    """
+    cleaned_dataset = []
+
+    for mol_id in range(len(dataset)) :
+
+        # Case of disconnected graph
+        if len(list(nx.connected_components(dataset[mol_id]))) > 1 :
+
+            # Case of isolated atoms
+            if len(sorted(list(nx.connected_components(dataset[mol_id])), key=len)[-2]) == 1 :
+                
+                new_mol = copy.deepcopy(dataset[mol_id])
+                new_mol.remove_nodes_from(list(nx.isolates(new_mol)))
+                cleaned_dataset.append(new_mol)
+            
+        else :
+            cleaned_dataset.append(dataset[mol_id])
+
+    return cleaned_dataset
