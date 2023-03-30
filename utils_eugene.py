@@ -185,13 +185,15 @@ def WLK_gaussian(l1, l2):
         wkl += l2[pattern]**2
     return wkl
 
-def clean_dataset(dataset) :
+def clean_dataset(dataset, discard=True) :
     """
     Given a dataset of networkx graphs, clean it by iterating over molecules having
     more than one connected component and by either :
 
     1. discard the molecule if this is actually two
-    fuly connected graphs
+    fully connected graphs. The function DOES NOT 
+    discard molecules if `discard` is set to False.
+
     2. remove only single nodes from the graph if there happens to be
     isolated atoms.
     
@@ -202,16 +204,20 @@ def clean_dataset(dataset) :
 
     for mol_id in range(len(dataset)) :
 
-        # Case of disconnected graph
+        # Case of disconnected graphs
         if len(list(nx.connected_components(dataset[mol_id]))) > 1 :
 
             # Case of isolated atoms
             if len(sorted(list(nx.connected_components(dataset[mol_id])), key=len)[-2]) == 1 :
-                
                 new_mol = copy.deepcopy(dataset[mol_id])
                 new_mol.remove_nodes_from(list(nx.isolates(new_mol)))
                 cleaned_dataset.append(new_mol)
             
+            # Keep molecule as is if it has two connected graphs
+            elif not discard :
+                cleaned_dataset.append(dataset[mol_id])                
+        
+        # Case of one clean connected graph 
         else :
             cleaned_dataset.append(dataset[mol_id])
 
