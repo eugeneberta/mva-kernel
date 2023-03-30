@@ -8,6 +8,110 @@ def get_all_atom_types(G) :
         atom_types[k] = G.nodes[k]['labels'][0]
     return atom_types
 
+def get_atom_type(G, vertex_id) :
+
+    return G.nodes[vertex_id]['labels'][0]
+
+
+
+def get_neighbors_id(G, vertex_id) :
+
+    L = []
+    neighbored_edges = [k for k in G.edges if vertex_id in k]
+
+    for edge in neighbored_edges :
+
+        if edge[0] != vertex_id :
+            L.append(edge[0])
+        else : 
+            L.append(edge[1])
+
+    return L
+
+
+def sorted_neighbors_id(G, vertex_id, pattern_dict) :
+
+    """ 
+    Returns a dict {neighbors id: neighbors label} sorted by their label
+
+    """
+    # Define random but fixed order for labels
+    unique_pattern_order = list(pattern_dict.keys())
+
+    # Get a dict of neighbors_id with their label and order it according to the label order ahead
+    neighbors_id = get_neighbors_id(G, vertex_id)
+    neighbors_dict = {k:str(get_atom_type(G,k)) for k in neighbors_id}
+
+    neighbors_dict_sorted = dict(sorted(neighbors_dict.items(), key=lambda item: unique_pattern_order.index(item[1])))
+
+    return neighbors_dict_sorted
+
+
+def WL(Graph, max_iter, verbose=False) :
+
+    G = copy.deepcopy(Graph)
+
+    
+    feature_vector = {}
+
+    # Initialize feature vector with initial labels
+    atom_types = get_all_atom_types(G)
+    atom_types_set = set(atom_types.values())
+
+    pattern_dict = {str(pattern):list(atom_types.values()).count(pattern) for pattern in atom_types_set}
+    old_pattern_dict_length = len(pattern_dict)
+    feature_vector.update(pattern_dict)
+
+    if verbose : 
+        print('Pattern dict', pattern_dict)
+
+    # Start iterations
+    for iter in range(1, max_iter+1) :
+        
+        pattern_type = [] 
+
+        for vertex_id in G.nodes :
+            
+            # Get vertex label
+            vertex_type = get_atom_type(G, vertex_id)
+            
+            # Identify neighbors of current vertex
+            neighbors_id = sorted_neighbors_id(G, vertex_id, pattern_dict)
+            
+            # Identify patterns and fill exhaustively pattern list (with potentially repetition)
+            pattern = f'{vertex_type}' + iter*'-' + '>'
+            for neighbor in neighbors_id :
+                pattern += str(get_atom_type(G, neighbor))
+                pattern += (iter-1)*' '
+            
+            pattern_type.append(pattern)
+
+        for k in range(len(pattern_type)) :
+
+            # Change vertex label (relabelling)
+            G.nodes[k]['labels'][0] = pattern_type[k]
+
+        # Count unique patterns  
+        pattern_dict = {k:pattern_type.count(k) for k in set(pattern_type)}
+        assert sum(pattern_dict.values()) == len(G.nodes)
+        
+  
+        # Stop algorithm if iteration doesn't add information
+        if len(pattern_dict) == old_pattern_dict_length :
+            break
+        else :
+            old_pattern_dict_length = len(pattern_dict)
+            # Update feature vector
+            feature_vector.update(pattern_dict)  
+        
+        if verbose :
+            print(f'Iteration {iter} finished !')
+            print('Pattern dict', pattern_dict)
+            print('Length of pattern dict', len(pattern_dict))
+            print('Feature_vector', feature_vector)
+
+    return feature_vector
+
 def weisfeiler_lehman(G, h):
     """
     Implements the Weisfeiler-Lehman algorithm to compute a feature vector
