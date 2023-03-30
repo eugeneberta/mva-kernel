@@ -59,6 +59,28 @@ def weisfeiler_lehman(G, h):
 
     return patterns
 
+def WLK_linear(l1, l2):
+    common_patterns = l1.keys() & l2.keys()
+    wkl = 0
+    for pattern in common_patterns:
+        wkl += l1[pattern]*l2[pattern]
+    return wkl
+
+def WLK_gaussian(l1, l2):
+    s1 = set(l1.keys())
+    s2 = set(l2.keys())
+    common_patterns = list(s1 & s2)
+    patterns1 = list(s1-s2)
+    patterns2 = list(s2-s1)
+    wkl = 0
+    for pattern in common_patterns:
+        wkl += (l1[pattern]-l2[pattern])**2
+    for pattern in patterns1:
+        wkl += l1[pattern]**2
+    for pattern in patterns2:
+        wkl += l2[pattern]**2
+    return wkl
+
 def clean_dataset(dataset) :
     """
     Given a dataset of networkx graphs, clean it by iterating over molecules having
