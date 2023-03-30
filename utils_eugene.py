@@ -1,5 +1,4 @@
 import numpy as np
-import networkx as nx
 
 def get_all_atom_types(G) :
     atom_types = {}
@@ -57,10 +56,3 @@ def weisfeiler_lehman(G, h):
             patterns.update(step_patterns)
 
     return patterns
-
-def WLK(l1, l2, h=5):
-    common_patterns = l1.keys() & l2.keys()
-    wkl = 0
-    for pattern in common_patterns:
-        wkl += l1[pattern]*l2[pattern]
-    return wkl
