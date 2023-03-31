@@ -50,7 +50,6 @@ def sorted_neighbors_id(G, vertex_id, pattern_dict) :
 def WL(Graph, max_iter, verbose=False) :
 
     G = copy.deepcopy(Graph)
-
     
     feature_vector = {}
 
@@ -87,15 +86,13 @@ def WL(Graph, max_iter, verbose=False) :
             pattern_type.append(pattern)
 
         for k in range(len(pattern_type)) :
-
             # Change vertex label (relabelling)
             G.nodes[k]['labels'][0] = pattern_type[k]
 
-        # Count unique patterns  
+        # Count unique patterns
         pattern_dict = {k:pattern_type.count(k) for k in set(pattern_type)}
         assert sum(pattern_dict.values()) == len(G.nodes)
-        
-  
+
         # Stop algorithm if iteration doesn't add information
         if len(pattern_dict) == old_pattern_dict_length :
             break
