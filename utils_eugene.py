@@ -220,7 +220,7 @@ def clean_dataset(dataset, discard=True) :
 
     return cleaned_dataset
 
-def nth_order_walk(G1, G2, n=3) :
+def nth_order_walk(G1, G2, n=3):
 
     prod_graph = nx.tensor_product(G1, G2)
     adj_matrix = nx.adjacency_matrix(prod_graph).toarray()
