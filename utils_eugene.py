@@ -225,7 +225,4 @@ def nth_order_walk(G1, G2, n=3) :
     prod_graph = nx.tensor_product(G1, G2)
     adj_matrix = nx.adjacency_matrix(prod_graph).toarray()
 
-    N = adj_matrix.shape[0]
-    ones = np.ones(N)
-
-    return np.dot(ones, np.linalg.matrix_power(adj_matrix, n) @ ones)
+    return np.sum(np.linalg.matrix_power(adj_matrix, n))
