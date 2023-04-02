@@ -1,6 +1,61 @@
 import numpy as np
 import networkx as nx
 import copy
+import cvxopt
+
+
+class KernelSVC:
+    def __init__(self, C):
+        self.C = C
+        self.alpha = None
+    
+    def fit(self, G, y, class_weights=True):
+        N = len(y)
+        K = G
+        y = y*2-1 # rescaling values to -1, 1
+        self.y = y
+
+        assert (np.unique(y) == np.array([-1, 1])).all(), print('y must take values in [-1, 1]')
+
+        if type(class_weights) == dict:
+            Cvect = self.C * class_weights[-1] * (self.y == -1) + self.C * class_weights[1] * (self.y == 1)
+        elif class_weights:
+            Cvect = self.C * (N / np.sum((self.y==-1))) * (self.y == -1) + self.C * (N / np.sum((self.y==1))) * (self.y == 1)
+        else:
+            Cvect = self.C * np.ones(N)
+
+        # Quadratic objective
+        P = np.diag(self.y) @ K @ np.diag(self.y)
+        q = -np.ones(N)
+
+        # Constraints
+        G = np.kron(np.array([[-1.0], [1.0]]), np.eye(N))
+        h = np.kron(np.array([0.0, 1.0]), Cvect)
+        A = self.y.reshape(1, -1).astype("float")
+        b = np.array([[0.0]]).astype("float")
+
+        # Optimization
+        out = cvxopt.solvers.qp(
+            P=cvxopt.matrix(P),
+            q=cvxopt.matrix(q),
+            G=cvxopt.matrix(G),
+            h=cvxopt.matrix(h),
+            A=cvxopt.matrix(A),
+            b=cvxopt.matrix(b),
+        )
+        self.alpha = np.array(out["x"]).reshape((N,))
+
+    ### Implementation of the separating function $f$
+    def separating_function(self, G):
+        # Input : matrix x of shape N data points times d dimension
+        # Output: vector of size N
+        ay = np.multiply(self.alpha, self.y)
+        return G@ay
+
+    def predict(self, G):
+        """ Predict y values in {0, 1} """
+        d = self.separating_function(G)
+        return d > 0
 
 def get_all_atom_types(G) :
     atom_types = {}
