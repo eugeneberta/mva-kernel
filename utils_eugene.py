@@ -12,8 +12,6 @@ def get_atom_type(G, vertex_id) :
 
     return G.nodes[vertex_id]['labels'][0]
 
-
-
 def get_neighbors_id(G, vertex_id) :
 
     L = []
@@ -27,7 +25,6 @@ def get_neighbors_id(G, vertex_id) :
             L.append(edge[1])
 
     return L
-
 
 def sorted_neighbors_id(G, vertex_id, pattern_dict) :
 
@@ -45,7 +42,6 @@ def sorted_neighbors_id(G, vertex_id, pattern_dict) :
     neighbors_dict_sorted = dict(sorted(neighbors_dict.items(), key=lambda item: unique_pattern_order.index(item[1])))
 
     return neighbors_dict_sorted
-
 
 def WL(Graph, max_iter, verbose=False) :
 
@@ -109,7 +105,7 @@ def WL(Graph, max_iter, verbose=False) :
 
     return feature_vector
 
-def weisfeiler_lehman(G, h):
+def weisfeiler_lehman(G, h, normalize=False):
     """
     Implements the Weisfeiler-Lehman algorithm to compute a feature vector
     describing a graph in input.
@@ -127,13 +123,22 @@ def weisfeiler_lehman(G, h):
     node_features = np.zeros((h, N), dtype=object)
     
     patterns = {}
-    for n in range(N):
-        pattern = str(G.nodes[n]['labels'][0])
-        if pattern in patterns:
-            patterns[pattern] += 1/N
-        else:
-            patterns[pattern] = 1/N
-        node_features[0, n] = pattern
+    if normalize:
+        for n in range(N):
+            pattern = str(G.nodes[n]['labels'][0])
+            if pattern in patterns:
+                patterns[pattern] += 1/N
+            else:
+                patterns[pattern] = 1/N
+            node_features[0, n] = pattern
+    else:
+        for n in range(N):
+            pattern = str(G.nodes[n]['labels'][0])
+            if pattern in patterns:
+                patterns[pattern] += 1
+            else:
+                patterns[pattern] = 1
+            node_features[0, n] = pattern
     
     num_patterns = len(patterns)
     
