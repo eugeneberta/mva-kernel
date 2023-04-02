@@ -284,5 +284,18 @@ def nth_order_walk(G1, G2, n=3):
 
     prod_graph = nx.tensor_product(G1, G2)
     adj_matrix = nx.adjacency_matrix(prod_graph).toarray()
+    N = adj_matrix.shape[0]
 
-    return np.sum(np.linalg.matrix_power(adj_matrix, n))
+    # Using spectral theorem to compute A^n.
+    eigenval, eigenvect = np.linalg.eig(adj_matrix)
+
+    P = eigenvect
+    P_inv = np.linalg.inv(P)
+
+    D = np.zeros((N,N))
+    for k in range(N) :
+        D[k,k] = np.real(eigenval[k])**n
+
+    An = P @ D @ P_inv
+
+    return np.real(np.sum(An))
