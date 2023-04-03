@@ -286,9 +286,11 @@ def WLK_gaussian(l1, l2):
         wkl += l2[pattern]**2
     return wkl
 
-def clean_dataset(dataset, discard=True) :
+def clean_dataset(dataset, labels, discard=True) :
     """
-    Given a dataset of networkx graphs, clean it by iterating over molecules having
+    Given a dataset of networkx graphs
+    and its associated label list, 
+    clean it by iterating over molecules having
     more than one connected component and by either :
 
     1. discard the molecule if this is actually two
@@ -298,10 +300,11 @@ def clean_dataset(dataset, discard=True) :
     2. remove only single nodes from the graph if there happens to be
     isolated atoms.
     
-    Returns the new dataset.
+    Returns the new dataset, and the new label list.
 
     """
     cleaned_dataset = []
+    new_labels = []
 
     for mol_id in range(len(dataset)) :
 
@@ -313,16 +316,20 @@ def clean_dataset(dataset, discard=True) :
                 new_mol = copy.deepcopy(dataset[mol_id])
                 new_mol.remove_nodes_from(list(nx.isolates(new_mol)))
                 cleaned_dataset.append(new_mol)
+                new_labels.append(labels[mol_id])
             
             # Keep molecule as is if it has two connected graphs
             elif not discard :
-                cleaned_dataset.append(dataset[mol_id])                
+                cleaned_dataset.append(dataset[mol_id])
+                new_labels.append(labels[mol_id])
         
         # Case of one clean connected graph 
         else :
             cleaned_dataset.append(dataset[mol_id])
+            new_labels.append(labels[mol_id])
 
-    return cleaned_dataset
+
+    return cleaned_dataset, np.array(new_labels)
 
 def nth_order_walk(G1, G2, n=3):
 
