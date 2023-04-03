@@ -2,7 +2,7 @@ import numpy as np
 import networkx as nx
 import copy
 import cvxopt
-
+from sklearn.metrics import roc_auc_score
 
 class KernelSVC:
     def __init__(self, C):
@@ -56,6 +56,59 @@ class KernelSVC:
         """ Predict y values in {0, 1} """
         d = self.separating_function(G)
         return d > 0
+
+def cross_val(
+        G_train,
+        train_labels,
+        G_test,
+        C,
+        class_weights,
+        n_fold=5,
+        seed=42,
+        verbose=False
+    ):
+    indexes_train = np.arange(len(G_train))
+
+    np.random.seed(seed)
+    np.random.shuffle(indexes_train)
+
+    folds = np.split(indexes_train, n_fold)
+
+    models = []
+    scores = []
+    test_preds = []
+
+    for i in range(n_fold):
+        if verbose:
+            print(f'##### 5-FOLD CROSS VAL: starting fold {i+1} #####')
+
+        val_idx = folds[i]
+        train_idx = list(set(indexes_train) - set(val_idx))
+        
+        G_train_fold = G_train[train_idx][:,train_idx]
+        y_train_fold = train_labels[train_idx]
+
+        G_val_fold = G_train[val_idx][:,train_idx]
+        y_val_fold = train_labels[val_idx]
+
+        G_test_fold = G_test[:,train_idx]
+
+        model = KernelSVC(C=C)
+        model.fit(G_train_fold, y_train_fold, class_weights=class_weights)
+
+        y_val_pred = model.predict(G_val_fold)
+        val_score = roc_auc_score(y_val_fold, y_val_pred)
+
+        if verbose:
+            print(f'Val score: {val_score}')
+
+        y_test_pred = model.predict(G_test_fold)
+
+        models.append(model)
+        scores.append(val_score)
+        test_preds.append(y_test_pred)
+
+    return models, scores, test_preds
 
 def get_all_atom_types(G) :
     atom_types = {}
@@ -138,7 +191,7 @@ def WL(Graph, max_iter, verbose=False) :
 
         for k in range(len(pattern_type)) :
             # Change vertex label (relabelling)
-            G.nodes[k]['labels'][0] = pattern_type[k]
+            G.nodes[list(G.nodes)[k]]['labels'][0] = pattern_type[k]
 
         # Count unique patterns
         pattern_dict = {k:pattern_type.count(k) for k in set(pattern_type)}
