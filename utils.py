@@ -10,7 +10,7 @@ class KernelSVC:
         self.alpha = None
         self.epsilon = epsilon
 
-    def fit(self, K, y, y_weights=True):
+    def fit(self, K, y, class_weights=False):
         """_summary_
 
         Args:
@@ -24,8 +24,8 @@ class KernelSVC:
 
         assert (np.unique(y) == np.array([-1, 1])).all(), print('y must take values in [-1, 1]')
 
-        if type(y_weights) == dict:
-            C = y_weights[-1] * (self.y == -1) + y_weights[1] * (self.y == 1)
+        if type(class_weights) == dict:
+            C = class_weights[-1] * (self.y == -1) + class_weights[1] * (self.y == 1)
         else:
             C = np.ones(N)
         C = self.scaleC * C
@@ -242,7 +242,7 @@ def WLK_linear(l1, l2):
         wkl += l1[pattern]*l2[pattern]
     return wkl
 
-def WLK_dist(l1, l2):
+def WLK_l2_norm(l1, l2):
     s1 = set(l1.keys())
     s2 = set(l2.keys())
     common_patterns = list(s1 & s2)
