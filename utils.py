@@ -5,24 +5,30 @@ import cvxopt
 from sklearn.metrics import roc_auc_score
 
 class KernelSVC:
-    def __init__(self, C):
-        self.C = C
+    def __init__(self, C, epsilon=1e-3):
+        self.scaleC = C
         self.alpha = None
-    
-    def fit(self, G, y, class_weights=True):
+        self.epsilon = epsilon
+
+    def fit(self, K, y, y_weights=True):
+        """_summary_
+
+        Args:
+            K (_type_): _description_
+            y (_type_): _description_
+            y_weights (bool, optional): _description_. Defaults to True.
+        """
         N = len(y)
-        K = G
         y = y*2-1 # rescaling values to -1, 1
         self.y = y
 
         assert (np.unique(y) == np.array([-1, 1])).all(), print('y must take values in [-1, 1]')
 
-        if type(class_weights) == dict:
-            Cvect = self.C * class_weights[-1] * (self.y == -1) + self.C * class_weights[1] * (self.y == 1)
-        elif class_weights:
-            Cvect = self.C * (N / np.sum((self.y==-1))) * (self.y == -1) + self.C * (N / np.sum((self.y==1))) * (self.y == 1)
+        if type(y_weights) == dict:
+            C = y_weights[-1] * (self.y == -1) + y_weights[1] * (self.y == 1)
         else:
-            Cvect = self.C * np.ones(N)
+            C = np.ones(N)
+        C = self.scaleC * C
 
         # Quadratic objective
         P = np.diag(self.y) @ K @ np.diag(self.y)
@@ -30,7 +36,7 @@ class KernelSVC:
 
         # Constraints
         G = np.kron(np.array([[-1.0], [1.0]]), np.eye(N))
-        h = np.kron(np.array([0.0, 1.0]), Cvect)
+        h = np.kron(np.array([0.0, 1.0]), C)
         A = self.y.reshape(1, -1).astype("float")
         b = np.array([[0.0]]).astype("float")
 
@@ -43,21 +49,21 @@ class KernelSVC:
             A=cvxopt.matrix(A),
             b=cvxopt.matrix(b),
         )
+
+        # Alpha
         self.alpha = np.array(out["x"]).reshape((N,))
 
-    ### Implementation of the separating function $f$
-    def separating_function(self, G):
-        # Input : matrix x of shape N data points times d dimension
-        # Output: vector of size N
-        ay = np.multiply(self.alpha, self.y)
-        return G@ay
+        # Margin Points
+        support_idx = np.where((self.alpha < C - self.epsilon) & (self.alpha > self.epsilon))
 
-    def predict(self, G):
-        """ Predict y values in {0, 1} """
-        d = self.separating_function(G)
-        return d > 0
+        # Offset for the classifier
+        self.b = np.median(y[support_idx] - K[support_idx]@np.multiply(self.alpha, self.y))
 
-def cross_val(
+    def predict(self, K):
+        return K@np.multiply(self.alpha, self.y) + self.b
+
+
+def stratified_cross_val(
         G_train,
         train_labels,
         G_test,
@@ -67,12 +73,16 @@ def cross_val(
         seed=42,
         verbose=False
     ):
-    indexes_train = np.arange(len(G_train))
+    indexes_train = np.arange(len(train_labels))
+    indexes_pos = np.where(train_labels == 1)[0]
+    indexes_neg = np.where(train_labels == 0)[0]
 
     np.random.seed(seed)
-    np.random.shuffle(indexes_train)
+    np.random.shuffle(indexes_pos)
+    np.random.shuffle(indexes_neg)
 
-    folds = np.split(indexes_train, n_fold)
+    folds_pos = np.array_split(indexes_pos, n_fold)
+    folds_neg = np.array_split(indexes_neg, n_fold)
 
     models = []
     scores = []
@@ -80,13 +90,16 @@ def cross_val(
 
     for i in range(n_fold):
         if verbose:
-            print(f'##### 5-FOLD CROSS VAL: starting fold {i+1} #####')
+            print(f'##### {n_fold}-FOLD CROSS VAL: starting fold {i+1} #####')
 
-        val_idx = folds[i]
+        val_idx = np.concatenate((folds_pos[i], folds_neg[i]))
         train_idx = list(set(indexes_train) - set(val_idx))
-        
+
         G_train_fold = G_train[train_idx][:,train_idx]
         y_train_fold = train_labels[train_idx]
+
+        if verbose:
+            print(f'Percentage of positive values: {np.sum(y_train_fold)/len(y_train_fold):%}%')
 
         G_val_fold = G_train[val_idx][:,train_idx]
         y_val_fold = train_labels[val_idx]
@@ -231,6 +244,7 @@ def weisfeiler_lehman(G, h):
     node_features = np.zeros((h, N), dtype=object)
 
     patterns = {}
+
     for n in range(N):
         pattern = str(G.nodes[n]['labels'][0])
         if pattern in patterns:
@@ -245,7 +259,7 @@ def weisfeiler_lehman(G, h):
     for i in range(1, h):
         step_patterns = {}
         for n in range(N):
-            neighbor_features = [node_features[i-1, n] for n in G.neighbors(n)]
+            neighbor_features = [node_features[i-1, j] for j in G.neighbors(n)]
             sorted_features = sorted(neighbor_features)
             pattern = str(node_features[i-1, n]) + '>' + ''.join([str(f) for f in sorted_features])
 
@@ -271,7 +285,7 @@ def WLK_linear(l1, l2):
         wkl += l1[pattern]*l2[pattern]
     return wkl
 
-def WLK_gaussian(l1, l2):
+def WLK_dist(l1, l2):
     s1 = set(l1.keys())
     s2 = set(l2.keys())
     common_patterns = list(s1 & s2)
