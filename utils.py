@@ -10,13 +10,13 @@ class KernelSVC:
         self.alpha = None
         self.epsilon = epsilon
 
-    def fit(self, K, y, class_weights=False):
-        """_summary_
+    def fit(self, K, y, class_weights=None):
+        """Fit the support vector classifier.
 
         Args:
-            K (_type_): _description_
-            y (_type_): _description_
-            y_weights (bool, optional): _description_. Defaults to True.
+            K (np.ndarray): N*N Training Gram Matrix.
+            y (np.ndarray): N Training labels.
+            class_weights (dict, optional): Dictionnary of format {-1:w1, 1:w2}, C-weights for each label class. Defaults to None.
         """
         N = len(y)
         y = y*2-1 # rescaling values to -1, 1
@@ -24,6 +24,7 @@ class KernelSVC:
 
         assert (np.unique(y) == np.array([-1, 1])).all(), print('y must take values in [-1, 1]')
 
+        # Specific C for each label:
         if type(class_weights) == dict:
             C = class_weights[-1] * (self.y == -1) + class_weights[1] * (self.y == 1)
         else:
@@ -60,6 +61,14 @@ class KernelSVC:
         self.b = np.median(y[support_idx] - K[support_idx]@np.multiply(self.alpha, self.y))
 
     def predict(self, K):
+        """Prediction for the fitted SVC classifier.
+
+        Args:
+            K (numpy.ndarray): M*N Gram Matrix.
+
+        Returns:
+            numpy.ndarray: M prediction logits.
+        """
         return K@np.multiply(self.alpha, self.y) + self.b
 
 def stratified_cross_val(
@@ -68,10 +77,26 @@ def stratified_cross_val(
         G_test,
         C,
         class_weights,
-        n_fold=5,
+        n_fold=6,
         seed=42,
         verbose=False
     ):
+    """Run a stratified cross validation on training Gram Matrix G_train and use resulting models to make predictions on
+    test Gram Matrix G_test.
+
+    Args:
+        G_train (numpy.ndarray): N*N training Gram Matrix.
+        train_labels (numpy.ndarray): N training labels.
+        G_test (numpy.ndarray): M*N Testing Gram Matrix.
+        C (float): C.
+        class_weights (dict): weights for positive and negative class to apply to C format : {-1:w1, 1:w2}.
+        n_fold (int, optional): Number of folds for cross val. Defaults to 6.
+        seed (int, optional): Seed for reproducibility. Defaults to 42.
+        verbose (bool, optional): Wether to display scores during cross val. Defaults to False.
+
+    Returns:
+        list(KernelSVC), list(floats), list(numpy.ndarray): cross val models, scores and predictions.
+    """
     indexes_train = np.arange(len(train_labels))
     indexes_pos = np.where(train_labels == 1)[0]
     indexes_neg = np.where(train_labels == 0)[0]
@@ -214,7 +239,7 @@ def kNN(G_val, y_train, k=3):
 
 def WL_features(Graph, max_iter, verbose=False):
     """
-    Implements the Weisfeiler-Lehman algorithm to compute a feature vector
+    Implements the Weisfeiler-Lehman algorithm to compute a dictionnary vector
     describing a graph in input.
 
     Parameters:
@@ -222,7 +247,7 @@ def WL_features(Graph, max_iter, verbose=False):
     max_iter (int): Number of iterations of the algorithm (first iteration not included. max_iter = h-1).
 
     Returns:
-    patterns (dict): Feature vector of the input graph
+    patterns (dict): Feature dictionnary of the input graph (keys : patterns represented as strings, values : number of occurences).
     """
     G = copy.deepcopy(Graph)
     
@@ -287,6 +312,15 @@ def WL_features(Graph, max_iter, verbose=False):
     return feature_vector
 
 def WLK_linear(l1, l2):
+    """Implements inner product for WL features dicts (linear kernel).
+
+    Args:
+        l1 (dict): Feature dict built with WL_features.
+        l2 (dict): Feature dict built with WL_features.
+
+    Returns:
+        float: Inner product, value of the kernel.
+    """
     common_patterns = l1.keys() & l2.keys()
     wkl = 0
     for pattern in common_patterns:
@@ -294,6 +328,15 @@ def WLK_linear(l1, l2):
     return wkl
 
 def WLK_l2_norm(l1, l2):
+    """Computes l2 norm between WL feature dict from WL_features. Used to compute the RBF Kernel.
+
+    Args:
+        l1 (dict): Feature dict built with WL_features.
+        l2 (dict): Feature dict built with WL_features.
+
+    Returns:
+        float: l2 norm.
+    """
     s1 = set(l1.keys())
     s2 = set(l2.keys())
     common_patterns = list(s1 & s2)
