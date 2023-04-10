@@ -163,7 +163,23 @@ def sorted_neighbors_id(G, vertex_id, pattern_dict) :
 
     return neighbors_dict_sorted
 
-def WL(Graph, max_iter, verbose=False):
+def kNN(G_val, y_train, k=3):
+    """
+    Given a feature dictionnary whose label is to be predicted, the WL feature vector of the graphs in the training set 
+    and the number of nearest neighbors k, returns the predicted label of G.
+    """
+    neighbours = np.argpartition(G_val, k, axis=1)[:,:k]
+
+    y_pred = []
+    for i in range(len(neighbours)):
+        is_positive = sum([y_train[i] for i in neighbours[i]])
+        if is_positive > k/2 :
+            y_pred.append(1)
+        else:
+            y_pred.append(0)
+    return np.array(y_pred)
+
+def WL_features(Graph, max_iter, verbose=False):
     """
     Implements the Weisfeiler-Lehman algorithm to compute a feature vector
     describing a graph in input.
