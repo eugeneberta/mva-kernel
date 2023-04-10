@@ -177,6 +177,7 @@ def WL(Graph, max_iter, verbose=False):
     """
     G = copy.deepcopy(Graph)
     
+    # Create a dictionnary with labels of all the iterations (keys) and their count (values)
     feature_vector = {}
 
     # Initialize feature vector with initial labels
@@ -204,6 +205,7 @@ def WL(Graph, max_iter, verbose=False):
             neighbors_id = sorted_neighbors_id(G, vertex_id, pattern_dict)
             
             # Identify patterns and fill exhaustively pattern list (with potentially repetition)
+            # The spaces and dashes added below enable a better by-hand verification of the WL transform.
             pattern = f'{vertex_type}' + iter*'-' + '>'
             for neighbor in neighbors_id :
                 pattern += str(get_atom_type(G, neighbor))
