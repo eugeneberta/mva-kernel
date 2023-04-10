@@ -244,7 +244,7 @@ def WL_features(Graph, max_iter, verbose=False):
 
     Parameters:
     G (nx.Graph): Input graph
-    max_iter (int): Number of iterations of the algorithm (first iteration not included. max_iter = h-1).
+    max_iter (int): Number of iterations of the algorithm (first iteration not included. max_iter = h).
 
     Returns:
     patterns (dict): Feature dictionnary of the input graph (keys : patterns represented as strings, values : number of occurences).
@@ -275,7 +275,8 @@ def WL_features(Graph, max_iter, verbose=False):
             # Get vertex label
             vertex_type = get_atom_type(G, vertex_id)
             
-            # Identify neighbors of current vertex
+            # Identify neighbors of current vertex.
+            # We sort them according to their label to make sure we don't have redundant patterns.
             neighbors_id = sorted_neighbors_id(G, vertex_id, pattern_dict)
             
             # Identify patterns and fill exhaustively pattern list (with potentially repetition)
