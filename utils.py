@@ -123,6 +123,16 @@ def stratified_cross_val(
     return models, scores, test_preds
 
 def get_all_atom_types(G) :
+
+    """ 
+    Compute the labels of all the atoms from a graph.
+
+    Parameters: 
+    G (nx.Graph): input graph
+
+    Returns:
+    atom_types (dict): with (key,value) = (atom_id, atom_label)
+    """
     atom_types = {}
     for k in G.nodes :
         atom_types[k] = G.nodes[k]['labels'][0]
@@ -130,9 +140,32 @@ def get_all_atom_types(G) :
 
 def get_atom_type(G, vertex_id) :
 
-    return G.nodes[vertex_id]['labels'][0]
+    """ 
+    Compute the label of one atom from a graph.
+
+    Parameters: 
+    G (nx.Graph): Input graph
+    vertex_id (int): atom's ID
+
+    Returns:
+    label (int): atom's label
+    """
+
+    label = G.nodes[vertex_id]['labels'][0] 
+    return label
 
 def get_neighbors_id(G, vertex_id) :
+
+    """ 
+    Compute the list of atom's neighbors in a graph.
+
+    Parameters:
+    G (nx.Graph): input graph
+    vertex_id (int): atom's ID
+
+    Returns:
+    L (list): list of the IDs of the atom's neighbors 
+    """
 
     L = []
     neighbored_edges = [k for k in G.edges if vertex_id in k]
@@ -272,8 +305,16 @@ def clean_dataset(dataset, labels, discard=True) :
 
     2. remove only single nodes from the graph if there happens to be
     isolated atoms.
+
+    Parameters: 
+    dataset (list): list of nx.Graph
+    labels (np.array): array of graphs labels
+    discard (boolean): whether to discard molecules
+        if it contains two distinct fully connected molecules.
     
-    Returns the new dataset, and the new label list.
+    Returns:
+    cleaned_dataset (list): list of nx.Graph
+    new_labels (np.array): array of the associated labels
 
     """
     cleaned_dataset = []
@@ -305,6 +346,20 @@ def clean_dataset(dataset, labels, discard=True) :
     return cleaned_dataset, np.array(new_labels)
 
 def nth_order_walk(G1, G2, n=3):
+
+    """ 
+    Given two graphs, compute their n-th order walk kernel
+    using spectral theorem.
+
+    Parameters:
+    G1 (nx.Graph): first graph
+    G2 (nx.Graph): second graph
+    n (int): Length of the walks considered
+
+    Returns:
+    Kernel evaluation (float)
+
+    """
 
     prod_graph = nx.tensor_product(G1, G2)
     adj_matrix = nx.adjacency_matrix(prod_graph).toarray()
